@@ -11,9 +11,31 @@ class EditTeamController extends GetxController {
   final RxString searchQuery = "".obs;
 
   void initializeCurrentPokemons(List<Map<String, String>> currentPokemons) {
-    // mark current selections
+    // 🔧 แก้ไขการดึง id จาก image URL ให้ปลอดภัยขึ้น
     for (var p in currentPokemons) {
-      selected.add(int.parse(p["image"]!.split("/").last.split(".").first));
+      try {
+        // ดึง ID จาก image URL
+        final imageUrl = p["image"] ?? "";
+        if (imageUrl.isNotEmpty) {
+          final parts = imageUrl.split("/");
+          if (parts.isNotEmpty) {
+            final filename = parts.last;
+            final id = int.tryParse(filename.split(".").first);
+            if (id != null) {
+              selected.add(id);
+            }
+          }
+        }
+        // หรือใช้ id โดยตรงถ้ามี
+        else if (p["id"] != null) {
+          final id = int.tryParse(p["id"]!);
+          if (id != null) {
+            selected.add(id);
+          }
+        }
+      } catch (e) {
+        print("Error initializing pokemon: $e");
+      }
     }
     fetchPokemon();
   }
@@ -39,6 +61,8 @@ class EditTeamController extends GetxController {
       }
 
       allPokemons.value = fetched;
+      isLoading.value = false;
+    } else {
       isLoading.value = false;
     }
   }
@@ -81,14 +105,23 @@ class EditTeamController extends GetxController {
   }
 
   List<Map<String, String>> getUpdatedTeam() {
-    return selected.map((i) => allPokemons[i - 1]).toList();
+    return selected.map((i) {
+      final pokemon = allPokemons[i - 1];
+      // เพิ่ม id เข้าไปในข้อมูล
+      return {
+        "id": "$i",
+        "name": pokemon["name"]!,
+        "image": pokemon["image"]!,
+        "url": "https://pokeapi.co/api/v2/pokemon/$i/"
+      };
+    }).toList();
   }
 
   void saveTeam() {
     if (selected.length != 3) {
       Get.snackbar(
         "เตือน",
-        "ต้องเลือกให้ครบ 3 ตัวก่อน",
+        "ต้องเลือกให้ครب 3 ตัวก่อน",
         snackPosition: SnackPosition.BOTTOM,
       );
       return;
@@ -164,6 +197,9 @@ class EditTeamPage extends StatelessWidget {
                                   child: Image.network(
                                     pokemon["image"]!,
                                     fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(Icons.error);
+                                    },
                                   ),
                                 ),
                               );
@@ -278,6 +314,9 @@ class EditTeamPage extends StatelessWidget {
                                     child: Image.network(
                                       pokemon["image"]!,
                                       fit: BoxFit.contain,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Icon(Icons.error);
+                                      },
                                     ),
                                   ),
                                   const SizedBox(height: 6),

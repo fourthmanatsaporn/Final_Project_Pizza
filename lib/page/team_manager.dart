@@ -59,8 +59,14 @@ class TeamManagerController extends GetxController {
   }
 
   Future<void> editPokemons(int index) async {
+    // 🔧 แก้ไขการแปลงประเภทข้อมูลให้ถูกต้อง
+    final currentPokemons = teams[index]["pokemons"] as List;
+    final List<Map<String, String>> pokemonsList = currentPokemons
+        .map<Map<String, String>>((pokemon) => Map<String, String>.from(pokemon as Map))
+        .toList();
+
     final updatedPokemons = await Get.to(() => EditTeamPage(
-      currentPokemons: List<Map<String, String>>.from(teams[index]["pokemons"]),
+      currentPokemons: pokemonsList,
     ));
 
     if (updatedPokemons != null) {
@@ -94,28 +100,40 @@ class TeamManagerPage extends StatelessWidget {
               itemCount: controller.teams.length,
               itemBuilder: (context, index) {
                 final team = controller.teams[index];
+                // 🔧 เพิ่มการป้องกัน null และแปลงประเภทให้ถูกต้อง
+                final pokemonList = team["pokemons"] as List? ?? [];
+                
                 return Card(
                   child: ListTile(
                     leading: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: (team["pokemons"] as List)
-                          .map<Widget>((p) => Padding(
-                                padding: const EdgeInsets.only(right: 4.0),
-                                child: Image.network(
-                                  p["image"],
-                                  width: 32,
-                                  height: 32,
-                                ),
-                              ))
+                      children: pokemonList
+                          .take(3) // จำกัดแค่ 3 ตัว
+                          .map<Widget>((p) {
+                            // แปลง p เป็น Map<String, dynamic> ก่อน
+                            final pokemon = Map<String, dynamic>.from(p as Map);
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 4.0),
+                              child: Image.network(
+                                pokemon["image"]?.toString() ?? "",
+                                width: 32,
+                                height: 32,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(Icons.error, size: 32);
+                                },
+                              ),
+                            );
+                          })
                           .toList(),
                     ),
-                    title: Text(team["teamName"]),
+                    title: Text(team["teamName"]?.toString() ?? "Unknown Team"),
+                    subtitle: Text("${pokemonList.length} Pokémon"),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
                           icon: const Icon(Icons.pets, color: Colors.orange),
-                          tooltip: "แก้ไขโปเกม่อน",
+                          tooltip: "แก้ไขโปเกมอน",
                           onPressed: () => controller.editPokemons(index),
                         ),
                         IconButton(
