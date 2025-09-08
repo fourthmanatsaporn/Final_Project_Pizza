@@ -7,7 +7,9 @@ import 'dart:convert';
 class PokemonDetailController extends GetxController {
   final Rx<Map<String, dynamic>?> details = Rx<Map<String, dynamic>?>(null);
   final Rx<Map<String, dynamic>?> speciesData = Rx<Map<String, dynamic>?>(null);
+  final Rx<Map<String, dynamic>?> evolutionChain = Rx<Map<String, dynamic>?>(null);
   final RxBool isLoading = true.obs;
+  final RxBool evolutionLoading = false.obs;
   final RxInt selectedTabIndex = 0.obs;
   
   late final String url;
@@ -36,6 +38,26 @@ class PokemonDetailController extends GetxController {
     final response = await http.get(Uri.parse(speciesUrl));
     if (response.statusCode == 200) {
       speciesData.value = json.decode(response.body);
+      // เรียก evolution chain เมื่อได้ species data แล้ว
+      fetchEvolutionChain();
+    }
+  }
+
+  Future<void> fetchEvolutionChain() async {
+    if (speciesData.value == null) return;
+    
+    try {
+      evolutionLoading.value = true;
+      final evolutionUrl = speciesData.value!['evolution_chain']['url'];
+      final response = await http.get(Uri.parse(evolutionUrl));
+      
+      if (response.statusCode == 200) {
+        evolutionChain.value = json.decode(response.body);
+      }
+    } catch (e) {
+      print('Error fetching evolution chain: $e');
+    } finally {
+      evolutionLoading.value = false;
     }
   }
 
@@ -224,7 +246,7 @@ class PokemonDetailPage extends StatelessWidget {
                         // Moves Tab
                         _buildMovesTab(controller),
                         
-                        // Evolution Tab (Placeholder)
+                        // Evolution Tab
                         _buildEvolutionTab(controller),
                       ],
                     ),
@@ -525,16 +547,210 @@ class PokemonDetailPage extends StatelessWidget {
   }
 
   Widget _buildEvolutionTab(PokemonDetailController controller) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(20),
-        child: Text(
-          'Evolution chain data requires additional API calls.\nThis is a placeholder for evolution information.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+    return Obx(() {
+      if (controller.evolutionLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      
+      if (controller.evolutionChain.value == null) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Text(
+              'Loading evolution data...',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ),
+        );
+      }
+      
+      final evolutionData = controller.evolutionChain.value!['chain'];
+      List<Map<String, dynamic>> evolutionStages = [];
+      
+      // สร้าง list ของ evolution stages
+      _buildEvolutionStages(evolutionData, evolutionStages);
+      
+      if (evolutionStages.length <= 1) {
+        return const Center(
+          child: Text(
+            'This Pokémon does not evolve',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        );
+      }
+      
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const Text(
+              'Evolution Chain',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // แสดง evolution stages
+            ...evolutionStages.asMap().entries.map((entry) {
+              final index = entry.key;
+              final stage = entry.value;
+              final pokemonName = stage['species']['name'];
+              final pokemonId = _extractPokemonId(stage['species']['url']);
+              
+              return Column(
+                children: [
+                  // Pokemon card
+                  Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          // Pokemon image
+                          Image.network(
+                            'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/$pokemonId.png',
+                            height: 100,
+                            width: 100,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 100,
+                                width: 100,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.help_outline, size: 50),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          
+                          // Pokemon name
+                          Text(
+                            pokemonName.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '#${pokemonId.toString().padLeft(3, '0')}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  // Evolution requirements (แสดงระหว่าง stages)
+                  if (index < evolutionStages.length - 1) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.deepPurple.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.deepPurple.shade400,
+                            size: 30,
+                          ),
+                          Text(
+                            _getEvolutionRequirements(evolutionStages[index + 1]),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.deepPurple.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                ],
+              );
+            }).toList(),
+          ],
         ),
-      ),
-    );
+      );
+    });
+  }
+
+  // Helper method เพื่อสร้าง evolution stages
+  void _buildEvolutionStages(Map<String, dynamic> chainData, List<Map<String, dynamic>> stages) {
+    stages.add(chainData);
+    
+    final evolvesTo = chainData['evolves_to'] as List? ?? [];
+    for (final evolution in evolvesTo) {
+      _buildEvolutionStages(evolution, stages);
+    }
+  }
+
+  // Helper method เพื่อดึง Pokemon ID จาก species URL
+  int _extractPokemonId(String speciesUrl) {
+    try {
+      final parts = speciesUrl.split('/');
+      return int.parse(parts[parts.length - 2]);
+    } catch (e) {
+      return 1;
+    }
+  }
+
+  // Helper method เพื่อแสดงเงื่อนไขการอีโวลูชั่น
+  String _getEvolutionRequirements(Map<String, dynamic> evolutionData) {
+    final evolutionDetails = evolutionData['evolution_details'] as List? ?? [];
+    
+    if (evolutionDetails.isEmpty) {
+      return 'Evolution requirements unknown';
+    }
+    
+    final details = evolutionDetails.first;
+    List<String> requirements = [];
+    
+    // Level requirement
+    if (details['min_level'] != null) {
+      requirements.add('Level ${details['min_level']}');
+    }
+    
+    // Item requirement
+    if (details['item'] != null) {
+      final itemName = details['item']['name'].toString().replaceAll('-', ' ');
+      requirements.add('Use ${itemName}');
+    }
+    
+    // Happiness requirement
+    if (details['min_happiness'] != null) {
+      requirements.add('Happiness ${details['min_happiness']}');
+    }
+    
+    // Time of day requirement
+    if (details['time_of_day'] != null && details['time_of_day'].toString().isNotEmpty) {
+      requirements.add('${details['time_of_day']} time');
+    }
+    
+    // Location requirement
+    if (details['location'] != null) {
+      final locationName = details['location']['name'].toString().replaceAll('-', ' ');
+      requirements.add('At ${locationName}');
+    }
+    
+    return requirements.isEmpty ? 'Special conditions required' : requirements.join('\n');
   }
 
   Widget _buildInfoRow(String label, String value) {
