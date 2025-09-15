@@ -37,7 +37,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> fetchProducts() async {
     final pb = PocketBase('http://127.0.0.1:8090');
     // If your product collection requires auth, authenticate here
-    await pb.admins.authWithPassword('mathat.po.65@ubu.ac.th', '19109980#Zx');
+    await pb.admins.authWithPassword('manatsaporn.ka.65@ubu.ac.th', 'Fourth14095');
     final result = await pb.collection('product').getList(perPage: 100);
     setState(() {
       products = result.items;

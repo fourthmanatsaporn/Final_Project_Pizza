@@ -5,7 +5,7 @@ Future<void> seedProducts() async {
   final pb = PocketBase('http://127.0.0.1:8090');
 
   // Authenticate as admin
-  await pb.admins.authWithPassword('mathat.po.65@ubu.ac.th', '19109980#Zx');
+  await pb.admins.authWithPassword('manatsaporn.ka.65@ubu.ac.th', 'Fourth14095');
 
   // ตรวจสอบว่ามีข้อมูลอยู่แล้วหรือยัง
   final result = await pb.collection('product').getList(perPage: 1);
