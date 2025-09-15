@@ -28,7 +28,7 @@ class _ProductListPageState extends State<ProductListPage> {
   }
 
   Future<void> fetchProducts() async {
-    // If you need admin auth, uncomment below
+
     await pb.admins.authWithPassword('manatsaporn.ka.65@ubu.ac.th', 'Fourth14095');
     final result = await pb.collection('product').getList(perPage: 100);
     setState(() {

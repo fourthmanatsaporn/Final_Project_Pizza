@@ -24,4 +24,3 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// สามารถลบหรือคอมเมนต์ MyHomePage และ _MyHomePageState ได้
