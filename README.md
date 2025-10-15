@@ -18,7 +18,7 @@ Flutter E-Commerce App โปรเจกต์นี้เป็นแอปพ
 
 วิธีรันโปรเจกต์:
 
-1.git clone -b crudpocketbase https://github.com/fourthmanatsaporn/Mywork
+1.git clone https://github.com/fourthmanatsaporn/Final_Project_Pizza.git
 
 2.cd Work9-10 แล้ว code . จากนั้น flutter pub get
 
