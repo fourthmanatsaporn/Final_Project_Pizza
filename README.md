@@ -24,7 +24,7 @@ Flutter E-Commerce App โปรเจกต์นี้เป็นแอปพ
 
 รัน Backend: สั่งรัน PocketBase (./pocketbase serve)
 
-สร้าง Collection: ในหน้า Admin ของ PocketBase สร้าง Collection ชื่อ product พร้อม Fields: name, price, imageUrl
+สร้าง Collection: ในหน้า Admin ของ PocketBase สร้าง Collection ชื่อ product พร้อม Fields: name, description, price, imageUrl, isVegetarian, rating
 
 เพิ่มข้อมูล: รันสคริปต์ dart run pocketbase_seed.dart เพื่อสร้างข้อมูลสินค้า
 
